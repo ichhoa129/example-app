@@ -54,6 +54,9 @@ jobs:
       #     fetch-depth: 0
       #     persist-credentials: true
 
+      - name: Checkout app-deployment (if not using cache)
+        run: git clone https://github.com/ichhoa129/app-deployment.git --branch main
+
       - name: Modify value file
         shell: bash
         env:
@@ -63,7 +66,7 @@ jobs:
           [[ -d app-deployment]] && rm -r app-deployment
           git clone https://github.com/ichhoa129/app-deployment.git --branch main
           cd app-deployment/helm-chart
-          sed -i 's|  tag: .*|  tag: "${version}"|' app-example/values.yaml
+          sed -i 's|  tag: .*|  tag: '\"${version}\"|' app-example/values.yaml
           git add . ; git commit -m "Update to version ${version}";git push https://${{ secrets.GH_USER }}:${{ secrets.GH_TOKEN }}@github.com/ichhoa129/app-deployment.git
           cd ..
           [[ -d app-deployment ]] && rm -r app-deployment
