@@ -15,30 +15,42 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v1
+      - name: login to docker registry
+        uses: docker/login-action@v3
         with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ vars.AWS_REGION }}
-
-      - name: Login to Amazon ECR
-        id: login-ecr
-        uses: aws-actions/amazon-ecr-login@v1
+          username: ${{secrets.DOCKERHUB_USERNAME}}
+          password: ${{secrets.DOCKERHUB_TOKEN}}
 
       - name: Add SHORT_SHA env property with commit short sha
         run: echo "SHORT_SHA=`echo ${GITHUB_SHA} | cut -c1-6`" >> $GITHUB_ENV
 
-      - name: Build, tag, and push image to Amazon ECR
+      - name: Build, tag, and push image to DockerHub
         id: build-image
         env:
-          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }} 
         run: |
           # Build a docker container and
           # push it to ECR so that it can
           # be deployed to ECS.
-          docker build -t $ECR_REGISTRY/${{ vars.ECR_REPOSITORY }}:${{vars.ENV}}-${SHORT_SHA} -f ./docker/Dockerfile .
-          docker push $ECR_REGISTRY/${{ vars.ECR_REPOSITORY }}:${{vars.ENV}}-${SHORT_SHA}
-          echo "::set-output name=image::$ECR_REGISTRY/${{ vars.ECR_REPOSITORY }}:${{vars.ENV}}-${SHORT_SHA}"
+          docker build -t $DOCKERHUB_USERNAME/${{ vars.DOCKERHUB_REPOSITORY }}:${{vars.ENV}}-${SHORT_SHA} -f ./docker/Dockerfile .
+          docker push $DOCKERHUB_USERNAME/${{ vars.DOCKERHUB_REPOSITORY }}:${{vars.ENV}}-${SHORT_SHA}
+          echo "::set-output name=image::$DOCKERHUB_USERNAME/${{ vars.DOCKERHUB_REPOSITORY }}:${{vars.ENV}}-${SHORT_SHA}"
 
-    #  write to helm
+      - name: Modify value file
+        shell: bash
+        env:
+          version: ${{vars.ENV}}-${SHORT_SHA}
+          configRepo: ${{ vars.CONFIG_REPO }}
+          gitHubUser: ${{ secrets.GH_USER }}
+          branch: ${{ vars.CONFIG_REPO_BRANCH }}
+          valueFile: ${{ vars.CONFIG_REPO_VALUE_FILE }}
+        run: |
+          [[ -d ${configRepo} ]] && rm -r ${configRepo}
+          git clone https://github.com/${gitHubUser}/${configRepo}.git --branch ${branch}
+          cd ${configRepo}
+          git config user.email "cicd@gmail.com"
+          git config user.name "cicd"
+          sed -i 's|  tag: .*|  tag: '\"${version}\"'|' ${valueFile}
+          git add . ; git commit -m "Update to version ${version}";git push https://${{ secrets.GH_TOKEN }}@github.com/${gitHubUser}/${configRepo}.git
+          [[ -d ${configRepo} ]] && rm -r ${configRepo}
+          echo "::set-output name=version::$version"
