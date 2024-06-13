@@ -41,7 +41,7 @@ jobs:
         env:
           # version: ${{ steps.build-image.outputs.image }}
           configRepo: ${{ vars.CONFIG_REPO }}
-          version: hehe123
+          version: hehe12345
           gitHubUser: ${{ secrets.GH_USER }}
           branch: ${{ vars.CONFIG_REPO_BRANCH }}
           valueFile: ${{ vars.CONFIG_REPO_VALUE_FILE }}
