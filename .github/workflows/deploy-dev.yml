@@ -63,6 +63,7 @@ jobs:
           # version: ${{ steps.build-image.outputs.image }}
           version: hehe
         run: |
+          ls -la
           if [ -f app-deployment ]; then
             rm -rf app-deployment
           fi
