@@ -49,6 +49,8 @@ jobs:
           [[ -d ${configRepo} ]] && rm -r ${configRepo}
           git clone https://github.com/${gitHubUser}/${configRepo}.git --branch ${branch}
           cd ${configRepo}
+          git config user.email "cicd@gmail.com"
+          git config user.name "cicd"
           sed -i 's|  tag: .*|  tag: '\"${version}\"'|' ${valueFile}
           git add . ; git commit -m "Update to version ${version}";git push https://${{ secrets.GH_TOKEN }}@github.com/${gitHubUser}/${configRepo}.git
           [[ -d ${configRepo} ]] && rm -r ${configRepo}
