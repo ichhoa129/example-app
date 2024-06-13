@@ -39,7 +39,7 @@ jobs:
       - name: Modify value file
         shell: bash
         env:
-          version: ${{ steps.build-image.outputs.image }}
+          version: ${{vars.ENV}}-${SHORT_SHA}
           configRepo: ${{ vars.CONFIG_REPO }}
           gitHubUser: ${{ secrets.GH_USER }}
           branch: ${{ vars.CONFIG_REPO_BRANCH }}
