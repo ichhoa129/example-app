@@ -1,0 +1,83 @@
+on:
+  push:
+    branches:
+      - develop
+
+name: "[DEV] Deploy image to K8S"
+
+jobs:
+  deploy:
+    environment: example-app-dev
+    name: Deploy App to K8S
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # - name: Configure AWS credentials
+      #   uses: aws-actions/configure-aws-credentials@v1
+      #   with:
+      #     aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      #     aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      #     aws-region: ${{ vars.AWS_REGION }}
+
+      # - name: Login to Amazon ECR
+      #   id: login-ecr
+      #   uses: aws-actions/amazon-ecr-login@v1
+
+      - name: Add SHORT_SHA env property with commit short sha
+        run: echo "SHORT_SHA=`echo ${GITHUB_SHA} | cut -c1-6`" >> $GITHUB_ENV
+
+      - name: Build, tag, and push image to Amazon ECR
+        id: build-image
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+        run: |
+          # Build a docker container and
+          # push it to ECR so that it can
+          # be deployed to ECS.
+          docker build -t $ECR_REGISTRY/${{ vars.ECR_REPOSITORY }}:${{vars.ENV}}-${SHORT_SHA} -f ./docker/Dockerfile .
+          # docker push $ECR_REGISTRY/${{ vars.ECR_REPOSITORY }}:${{vars.ENV}}-${SHORT_SHA}
+          echo "::set-output name=image::$ECR_REGISTRY/${{ vars.ECR_REPOSITORY }}:${{vars.ENV}}-${SHORT_SHA}"
+
+      - name: login to docker registry
+        uses: docker/login-action@v3
+        with:
+          username: ${{secrets.DOCKERHUB_USERNAME}}
+          password: ${{secrets.DOCKERHUB_TOKEN}}
+
+      - name: build and push docker image to registry
+        uses: docker/build-push-action@v5
+        with:
+          context: DockerFileFolder/
+          push: true
+          tags: ${{ steps.build-image.outputs.image }}
+
+      # #  write on other github repo
+      # - name: Checkout
+      #   uses: actions/checkout@v3
+      #   with:
+      #     path: 'src'
+      #     ref: 'main'
+      #     persist-credentials: false
+      
+      # - name: Checkout
+      #   uses: actions/checkout@v3
+      #   with:
+      #     path: 'dest'
+      #     ref: 'main'
+      #     repository: 'ichhoa129/app-deployment'
+      #     token: ${{ secrets.GH_TOKEN }}
+      #     fetch-depth: 0
+      #     persist-credentials: true
+      # - name: Modify value file
+      #   shell: bash
+      #   run: |
+      #     [[ -d ${helmRepo} ]] && rm -r ${helmRepo}
+      #     git clone ${appConfigRepo} --branch ${appConfigBranch}
+      #     cd ${helmRepo}
+      #     sed -i 's|  tag: .*|  tag: "${version}"|' ${helmValueFile}
+      #     git add . ; git commit -m "Update to version ${version}";git push https://${{ secrets.GH_USER }}:${{ secrets.GH_TOKEN }}@github.com/ichhoa129/app-deployment.git
+      #     cd ..
+      #     [[ -d ${helmRepo} ]] && rm -r ${helmRepo}

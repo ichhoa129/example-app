@@ -1,0 +1,30 @@
+name: "[EXAMPLE_APP] Run UT and Sonarqube scan"
+
+on:
+  push:
+    branches:
+      - test
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  test:
+    name: Run unit test & Sonarqube scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v4
+      - name: Setup node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "21"
+          cache: "npm"
+      - name: Tests
+        run: |
+          cp sonar-project.properties ./sonar-project.properties
+          npm install
+          npm run test
+      - uses: sonarsource/sonarqube-scan-action@master
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
