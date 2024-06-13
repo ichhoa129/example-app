@@ -15,46 +15,28 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      # - name: Configure AWS credentials
-      #   uses: aws-actions/configure-aws-credentials@v1
+      # - name: login to docker registry
+      #   uses: docker/login-action@v3
       #   with:
-      #     aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-      #     aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-      #     aws-region: ${{ vars.AWS_REGION }}
+      #     username: ${{secrets.DOCKERHUB_USERNAME}}
+      #     password: ${{secrets.DOCKERHUB_TOKEN}}
 
-      # - name: Login to Amazon ECR
-      #   id: login-ecr
-      #   uses: aws-actions/amazon-ecr-login@v1
-      - name: login to docker registry
-        uses: docker/login-action@v3
-        with:
-          username: ${{secrets.DOCKERHUB_USERNAME}}
-          password: ${{secrets.DOCKERHUB_TOKEN}}
+      # - name: Add SHORT_SHA env property with commit short sha
+      #   run: echo "SHORT_SHA=`echo ${GITHUB_SHA} | cut -c1-6`" >> $GITHUB_ENV
 
-      - name: Add SHORT_SHA env property with commit short sha
-        run: echo "SHORT_SHA=`echo ${GITHUB_SHA} | cut -c1-6`" >> $GITHUB_ENV
+      # - name: Build, tag, and push image to DockerHub
+      #   id: build-image
+      #   env:
+      #     DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }} 
+      #   run: |
+      #     # Build a docker container and
+      #     # push it to ECR so that it can
+      #     # be deployed to ECS.
+      #     docker build -t $DOCKERHUB_USERNAME/${{ vars.DOCKERHUB_REPOSITORY }}:${{vars.ENV}}-${SHORT_SHA} -f ./docker/Dockerfile .
+      #     docker push $DOCKERHUB_USERNAME/${{ vars.DOCKERHUB_REPOSITORY }}:${{vars.ENV}}-${SHORT_SHA}
+      #     echo "::set-output name=image::$DOCKERHUB_USERNAME/${{ vars.DOCKERHUB_REPOSITORY }}:${{vars.ENV}}-${SHORT_SHA}"
 
-      - name: Build, tag, and push image to DockerHub
-        id: build-image
-        env:
-          # ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }} 
-        run: |
-          # Build a docker container and
-          # push it to ECR so that it can
-          # be deployed to ECS.
-          docker build -t $DOCKERHUB_USERNAME/${{ vars.DOCKERHUB_REPOSITORY }}:${{vars.ENV}}-${SHORT_SHA} -f ./docker/Dockerfile .
-          docker push $DOCKERHUB_USERNAME/${{ vars.DOCKERHUB_REPOSITORY }}:${{vars.ENV}}-${SHORT_SHA}
-          echo "::set-output name=image::$DOCKERHUB_USERNAME/${{ vars.DOCKERHUB_REPOSITORY }}:${{vars.ENV}}-${SHORT_SHA}"
-
-      # - name: build and push docker image to registry
-      #   uses: docker/build-push-action@v5
-      #   with:
-      #     context: DockerFileFolder/
-      #     push: true
-      #     tags: ${{ steps.build-image.outputs.image }}
-
-      # #  write on other github repo
+      #  write on other github repo
       # - name: Checkout
       #   uses: actions/checkout@v3
       #   with:
@@ -71,13 +53,17 @@ jobs:
       #     token: ${{ secrets.GH_TOKEN }}
       #     fetch-depth: 0
       #     persist-credentials: true
-      # - name: Modify value file
-      #   shell: bash
-      #   run: |
-      #     [[ -d ${helmRepo} ]] && rm -r ${helmRepo}
-      #     git clone ${appConfigRepo} --branch ${appConfigBranch}
-      #     cd ${helmRepo}
-      #     sed -i 's|  tag: .*|  tag: "${version}"|' ${helmValueFile}
-      #     git add . ; git commit -m "Update to version ${version}";git push https://${{ secrets.GH_USER }}:${{ secrets.GH_TOKEN }}@github.com/ichhoa129/app-deployment.git
-      #     cd ..
-      #     [[ -d ${helmRepo} ]] && rm -r ${helmRepo}
+
+      - name: Modify value file
+        shell: bash
+        env:
+          # version: ${{ steps.build-image.outputs.image }}
+          version: hehe
+        run: |
+          [[ -d app-deployment]] && rm -r app-deployment
+          git clone https://github.com/ichhoa129/app-deployment.git --branch main
+          cd app-deployment/helm-chart
+          sed -i 's|  tag: .*|  tag: "${version}"|' app-example/values.yaml
+          git add . ; git commit -m "Update to version ${version}";git push https://${{ secrets.GH_USER }}:${{ secrets.GH_TOKEN }}@github.com/ichhoa129/app-deployment.git
+          cd ..
+          [[ -d app-deployment ]] && rm -r app-deployment
