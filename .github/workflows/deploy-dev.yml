@@ -25,15 +25,20 @@ jobs:
       # - name: Login to Amazon ECR
       #   id: login-ecr
       #   uses: aws-actions/amazon-ecr-login@v1
+      - name: login to docker registry
+        uses: docker/login-action@v3
+        with:
+          username: ${{secrets.DOCKERHUB_USERNAME}}
+          password: ${{secrets.DOCKERHUB_TOKEN}}
 
       - name: Add SHORT_SHA env property with commit short sha
         run: echo "SHORT_SHA=`echo ${GITHUB_SHA} | cut -c1-6`" >> $GITHUB_ENV
 
-      - name: Build, tag, and push image to Amazon ECR
+      - name: Build, tag, and push image to DockerHub
         id: build-image
         env:
           # ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }} 
         run: |
           # Build a docker container and
           # push it to ECR so that it can
@@ -42,18 +47,12 @@ jobs:
           docker push $DOCKERHUB_USERNAME/${{ vars.DOCKERHUB_REPOSITORY }}:${{vars.ENV}}-${SHORT_SHA}
           echo "::set-output name=image::$DOCKERHUB_USERNAME/${{ vars.DOCKERHUB_REPOSITORY }}:${{vars.ENV}}-${SHORT_SHA}"
 
-      - name: login to docker registry
-        uses: docker/login-action@v3
-        with:
-          username: ${{secrets.DOCKERHUB_USERNAME}}
-          password: ${{secrets.DOCKERHUB_TOKEN}}
-
-      - name: build and push docker image to registry
-        uses: docker/build-push-action@v5
-        with:
-          context: DockerFileFolder/
-          push: true
-          tags: ${{ steps.build-image.outputs.image }}
+      # - name: build and push docker image to registry
+      #   uses: docker/build-push-action@v5
+      #   with:
+      #     context: DockerFileFolder/
+      #     push: true
+      #     tags: ${{ steps.build-image.outputs.image }}
 
       # #  write on other github repo
       # - name: Checkout
