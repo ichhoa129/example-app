@@ -34,12 +34,12 @@ jobs:
           # be deployed to ECS.
           docker build -t $DOCKERHUB_USERNAME/${{ vars.DOCKERHUB_REPOSITORY }}:${{vars.ENV}}-${SHORT_SHA} -f ./docker/Dockerfile .
           docker push $DOCKERHUB_USERNAME/${{ vars.DOCKERHUB_REPOSITORY }}:${{vars.ENV}}-${SHORT_SHA}
-          echo "::set-output name=image::$DOCKERHUB_USERNAME/${{ vars.DOCKERHUB_REPOSITORY }}:${{vars.ENV}}-${SHORT_SHA}"
+          echo "::set-output name=${{vars.ENV}}-${SHORT_SHA}"
 
       - name: Modify value file
         shell: bash
         env:
-          version: ${{vars.ENV}}-${SHORT_SHA}
+          version: ${{ steps.build-image.outputs.image }}
           configRepo: ${{ vars.CONFIG_REPO }}
           gitHubUser: ${{ secrets.GH_USER }}
           branch: ${{ vars.CONFIG_REPO_BRANCH }}
