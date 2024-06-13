@@ -68,7 +68,7 @@ jobs:
           fi
           git clone https://github.com/ichhoa129/app-deployment.git --branch main
           cd app-deployment/helm-chart
-          sed -i 's|  tag: .*|  tag: '\"${version}\"|' app-example/values.yaml
+          sed -i 's|  tag: .*|  tag: '\"${version}\"'|' app-example/values.yaml
           git config --global user.email "test@gmail.com"
           git config --global user.name "test"
           git add . ; git commit -m "Update to version ${version}";git push https://${{ secrets.GH_USER }}:${{ secrets.GH_TOKEN }}@github.com/ichhoa129/app-deployment.git
