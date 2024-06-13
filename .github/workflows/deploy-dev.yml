@@ -54,3 +54,4 @@ jobs:
           sed -i 's|  tag: .*|  tag: '\"${version}\"'|' ${valueFile}
           git add . ; git commit -m "Update to version ${version}";git push https://${{ secrets.GH_TOKEN }}@github.com/${gitHubUser}/${configRepo}.git
           [[ -d ${configRepo} ]] && rm -r ${configRepo}
+          echo "::set-output name=version::$version"
