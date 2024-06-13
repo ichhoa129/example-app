@@ -36,40 +36,19 @@ jobs:
       #     docker push $DOCKERHUB_USERNAME/${{ vars.DOCKERHUB_REPOSITORY }}:${{vars.ENV}}-${SHORT_SHA}
       #     echo "::set-output name=image::$DOCKERHUB_USERNAME/${{ vars.DOCKERHUB_REPOSITORY }}:${{vars.ENV}}-${SHORT_SHA}"
 
-      #  write on other github repo
-      # - name: Checkout
-      #   uses: actions/checkout@v3
-      #   with:
-      #     path: 'src'
-      #     ref: 'main'
-      #     persist-credentials: false
-      
-      # - name: Checkout
-      #   uses: actions/checkout@v3
-      #   with:
-      #     path: 'dest'
-      #     ref: 'main'
-      #     repository: 'ichhoa129/app-deployment'
-      #     token: ${{ secrets.GH_TOKEN }}
-      #     fetch-depth: 0
-      #     persist-credentials: true
-
-      - name: Checkout app-deployment (if not using cache)
-        run: git clone https://github.com/ichhoa129/app-deployment.git --branch main
-
       - name: Modify value file
         shell: bash
         env:
           # version: ${{ steps.build-image.outputs.image }}
-          version: hehe
+          configRepo: ${{ vars.CONFIG_REPO }}
+          version: hehe123
+          gitHubUser: ${{ secrets.GH_USERNAME }}
+          branch: ${{ vars.CONFIG_REPO_BRANCH }}
+          valueFile: ${{ vars.CONFIG_REPO_VALUE_FILE }}
         run: |
-          ls -la
-          if [ -f app-deployment ]; then
-            rm -rf app-deployment
-          fi
-          git clone https://github.com/ichhoa129/app-deployment.git --branch main
-          cd app-deployment/helm-chart
-          sed -i 's|  tag: .*|  tag: '\"${version}\"'|' app-example/values.yaml
-          git config --global user.email "test@gmail.com"
-          git config --global user.name "test"
-          git add . ; git commit -m "Update to version ${version}";git push https://${{ secrets.GH_USER }}:${{ secrets.GH_TOKEN }}@github.com/ichhoa129/app-deployment.git
+          [[ -d ${configRepo} ]] && rm -r ${configRepo}
+          git clone https://github.com/${gitHubUser}/${configRepo}.git --branch ${branch}
+          cd ${configRepo}
+          sed -i 's|  tag: .*|  tag: '\"${version}\"'|' ${valueFile}
+          git add . ; git commit -m "Update to version ${version}";git push https://${{ secrets.GH_TOKEN }}@github.com/${gitHubUser}/${configRepo}.git
+          [[ -d ${configRepo} ]] && rm -r ${configRepo}
