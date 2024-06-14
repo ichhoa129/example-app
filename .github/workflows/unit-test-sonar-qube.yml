@@ -3,12 +3,15 @@ name: "[EXAMPLE_APP] Run UT and Sonarqube scan"
 on:
   push:
     branches:
-      - test
+      - develop
+      - staging
+      - production
   pull_request:
     types: [opened, synchronize, reopened]
 
 jobs:
   test:
+    environment: example-app-sonarqube
     name: Run unit test & Sonarqube scan
     runs-on: ubuntu-latest
     steps:

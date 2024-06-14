@@ -1,0 +1,32 @@
+name: Performance Testing
+on:
+  workflow_run:
+    workflows: ["[STG] Deploy image to K8S"]
+    branches: [staging]
+    types: 
+      - completed
+
+jobs:
+  Performance-test:
+    environment: example-app-load-test
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Run JMeter Tests
+        uses: QAInsights/PerfAction@v3.1
+        with:
+          test-plan-path: performance/test-plan.jmx
+          args: ''
+      - name: Upload Results
+        uses: actions/upload-artifact@v2
+        with:
+          name: jmeter-results
+          path: result.jtl
+      - name: Analyze Results with Latency Lingo
+        uses: latency-lingo/github-action@v0.0.2
+        with:
+          api-key: ${{ secrets.LATENCY_LINGO_API_KEY }}
+          file: result.jtl
+          label: Checkout Flow Automated Test Plan
+          format: jmeter
