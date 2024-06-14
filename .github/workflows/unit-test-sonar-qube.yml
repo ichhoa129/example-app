@@ -1,13 +1,8 @@
-name: "[EXAMPLE_APP] Run UT and Sonarqube scan"
+name: "[EXAMPLE_APP] Run Tests & SonarQube Scan"
 
 on:
-  push:
-    branches:
-      - develop
-      - staging
-      - production
   pull_request:
-    types: [opened, synchronize, reopened]
+    types: [opened, edited, reopened, synchronize]
 
 jobs:
   test:
@@ -17,6 +12,18 @@ jobs:
     steps:
       - name: Check out repository code
         uses: actions/checkout@v4
+        
+      - name: Build, tag, and push image to DockerHub
+        id: build-image
+        env:
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }} 
+        run: |
+          # Build a docker container and
+          # push it to ECR so that it can
+          # be deployed to ECS.
+          docker build -t $DOCKERHUB_USERNAME/${{ vars.DOCKERHUB_REPOSITORY }}:${{vars.ENV}}-${SHORT_SHA} -f ./docker/Dockerfile .
+          echo "::set-output name=image::$DOCKERHUB_USERNAME/${{ vars.DOCKERHUB_REPOSITORY }}:${{vars.ENV}}-${SHORT_SHA}"
+
       - name: Setup node
         uses: actions/setup-node@v4
         with:

@@ -54,3 +54,33 @@ jobs:
           git add . ; git commit -m "Update to version ${version}";git push https://${{ secrets.GH_TOKEN }}@github.com/${gitHubUser}/${configRepo}.git
           [[ -d ${configRepo} ]] && rm -r ${configRepo}
           echo "::set-output name=version::$version"
+
+  slack-workflow-status:
+      if: always()
+      name: Post Workflow Status To Slack
+      needs:
+        - deploy
+      runs-on: ubuntu-latest
+      permissions:
+        actions: 'read'
+      steps:
+        - name: Post to a Slack channel
+          id: slack
+          uses: slackapi/slack-github-action@v1.26.0
+          with:
+            channel-id: ${{ secrets.SLACK_CHANNEL_ID}}
+            payload: |
+              {
+                "text": "GitHub Action build result: ${{ deploy.status }}\n${{ github.event.pull_request.html_url || github.event.head_commit.url }}",
+                "blocks": [
+                  {
+                    "type": "section",
+                    "text": {
+                      "type": "mrkdwn",
+                      "text": "GitHub Action build result: ${{ deploy.status }}\n${{ github.event.pull_request.html_url || github.event.head_commit.url }}"
+                    }
+                  }
+                ]
+              }
+          env:
+            SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
